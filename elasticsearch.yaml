@@ -1,0 +1,36 @@
+services:
+  elasticsearch:
+    build:
+      context: .
+      dockerfile: dockerfiles/elasticsearch/Dockerfile
+    ports:
+      - 9200:9200
+    networks:
+      - elastic
+    environment:
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - ELASTIC_PASSWORD=password
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security..enrollment.enabled=false
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  kibana:
+    depends_on:
+      - elasticsearch
+    image: docker.elastic.co/kibana/kibana:8.8.1
+    ports:
+      - 5601:5601
+    networks:
+      - elastic
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=password
+
+networks:
+  elastic:
