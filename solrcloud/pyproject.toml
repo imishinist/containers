@@ -6,6 +6,8 @@ authors = [
     { name = "Taisuke Miyazaki", email = "imishinist@gmail.com" }
 ]
 dependencies = [
+    "fire>=0.7.0",
+    "numpy>=2.0.2",
     "requests>=2.32.3",
     "scikit-learn>=1.5.2",
 ]

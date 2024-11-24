@@ -1,63 +1,77 @@
 #!/usr/bin/env python
 
 import random
+import fire
 import requests
 from sklearn.metrics import mean_absolute_error,mean_squared_error,mean_squared_log_error,r2_score,root_mean_squared_error,mean_absolute_percentage_error
-
 import threading
 from queue import Queue
+import numpy as np
 
-def req(n: str):
-    url = 'http://localhost:8983/solr/poc/select'
-    sort=f"if(lt({n},cumulative_probability),cumulative_probability,sum(1,cumulative_probability)) asc"
-    # sort=f"if(gt(cumulative_probability,{n}),1,0) desc,cumulative_probability asc"
-    payload = {
-        'q': '*:*',
-        'fq': '{!collapse field=group_key sort="' + sort + '"}',
-        'rows': 1000,
-    }
-    res = requests.get(url, params=payload)
-    json = res.json()
-    return json['response']['docs']
+class SolrClient:
+    def __init__(self, collection: str):
+        self.__collection = collection
+        self.__max_rows = 1000
 
-def get_expected():
-    url = 'http://localhost:8983/solr/poc/select'
-    payload = {
-        'q': '*:*',
-        'fl': 'id,group_key,probability',
-        'rows': 1000,
-    }
-    res = requests.get(url, params=payload)
-    json = res.json()
+    def search(self, probability: float):
+        url = f"http://localhost:8983/solr/{self.__collection}/select"
+        # sort = f"if(lt({probability},cumulative_probability),cumulative_probability,sum(1,cumulative_probability)) asc"
+        sort=f"if(gt(cumulative_probability,{probability}),1,0) desc,cumulative_probability asc"
+        payload = {
+            'q': '*:*',
+            'fq': '{!collapse field=group_key sort="' + sort + '"}',
+            'rows': self.__max_rows,
+        }
+        res = requests.get(url, params=payload).json()
 
-    results = {}
-    for i in json['response']['docs']:
-        key = i['group_key']
-        if key not in results:
-            results[key] = {}
-        results[key][i['id']] = i['probability']
-    return results
+        results = {}
+        for i in res['response']['docs']:
+            key = i['group_key']
+            results[key] = i['id']
+        # {group_key: id}
+        # {"A": "1", "B": "2"}
+        return results
 
-def worker(input_queue, output_queue):
+    def all(self):
+        url = f"http://localhost:8983/solr/{self.__collection}/select"
+        payload = {
+            'q': '*:*',
+            'fl': 'id,group_key,probability',
+            'rows': self.__max_rows,
+        }
+        res = requests.get(url, params=payload).json()
+
+        results = {}
+        for i in res['response']['docs']:
+            key = i['group_key']
+            if key not in results:
+                results[key] = {}
+            results[key][i['id']] = i['probability']
+        # {group_key: {id: probability}}
+        # {"A": {"1": 0.3, "2": 0.6, "3": 0.1}, "B": {"1": 0.4, "2": 0.6}}
+        return results
+
+
+def worker(solr, input_queue, output_queue):
     while not input_queue.empty():
         n = input_queue.get()
-        output_queue.put(req(str(n)))
+        output_queue.put(solr.search(n))
 
-def main():
-    n = 20000
-    max_threads = 20
-
+def main(n: int = 1000, max_threads: int = 4):
+    solr = SolrClient('poc')
     input_queue = Queue()
     output_queue = Queue()
+    rng = np.random.default_rng()
 
     # insert random numbers to input_queue
     for i in range(n):
-        input_queue.put(round(random.uniform(0.0,1.0),4))
+        # input_queue.put(round(i/n,4))
+        input_queue.put(round(rng.uniform(0.0,1.0),4))
 
     # start threads
     threads = []
     for i in range(max_threads):
-        thread = threading.Thread(target=worker, args=(input_queue, output_queue))
+        thread = threading.Thread(target=worker, args=(solr, input_queue, output_queue))
         thread.start()
         threads.append(thread)
 
@@ -65,23 +79,17 @@ def main():
     for thread in threads:
         thread.join()
 
-    responses = []
-    while not output_queue.empty():
-        responses.append(output_queue.get())
-
     results = {}
-    for rows in responses:
-        for j in rows:
-            i = j['id']
-            key = j['group_key']
+    while not output_queue.empty():
+        res = output_queue.get()
+        for key in res:
             if key not in results:
                 results[key] = {}
-            if i not in results[key]:
-                results[key][i] = 0
-            results[key][i] += 1
-
+            if res[key] not in results[key]:
+                results[key][res[key]] = 0
+            results[key][res[key]] += 1
     got = {}
-    expected = get_expected()
+    expected = solr.all()
     for key, value in results.items():
         print(f"{key}")
         got[key] = {}
@@ -112,4 +120,4 @@ def convert2y(data: dict):
 
 
 if __name__ == '__main__':
-    main()
+    fire.Fire(main)
