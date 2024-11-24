@@ -22,7 +22,6 @@ services:
     environment:
       - SOLR_HOST=localhost
       - ZK_HOST=zookeeper:2181
-      - SOLR_JAVA_MEM=-Xms4g -Xmx4g
     networks:
       - solr
     volumes:
