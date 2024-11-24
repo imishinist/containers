@@ -1,0 +1,50 @@
+
+services:
+  zookeeper:
+    image: zookeeper:3.8.1
+    restart: always
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+      ZOO_4LW_COMMANDS_WHITELIST: mntr, conf, ruok
+    networks:
+      - solr
+  solr:
+    build:
+      context: .
+      dockerfile: dockerfiles/solr/Dockerfile
+    restart: always
+    ports:
+      - "8983:8983"
+    environment:
+      - SOLR_HOST=localhost
+      - ZK_HOST=zookeeper:2181
+      - SOLR_JAVA_MEM=-Xms4g -Xmx4g
+    networks:
+      - solr
+    volumes:
+      - type: bind
+        source: ./solrcloud/server/solr/solr.xml
+        target: /var/solr/data/solr.xml
+      - type: bind
+        source: ./solrcloud/server/solr/configsets/poc
+        target: /opt/solr/server/solr/configsets/poc
+      - type: bind
+        source: ./solrcloud/bin
+        target: /opt/util/solrcloud/bin
+    command: >
+      sh -c '
+        /opt/solr/bin/solr zk upconfig -d /opt/solr/server/solr/configsets/poc -n poc -z zookeeper:2181
+        solr-foreground &
+        /opt/util/solrcloud/bin/solr-wait.sh 
+        curl "http://127.0.0.1:8983/solr/admin/collections?action=CREATE&name=poc&numShards=1&nrtReplicas=0&tlogReplicas=1&collection.configName=poc&router.field=id"
+        sleep infinity
+      '
+    depends_on:
+      - zookeeper
+
+networks:
+  solr:

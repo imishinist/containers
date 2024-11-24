@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<schema name="Proof of Concept" version="1.1">
+  <fieldtype name="string"  class="solr.StrField" sortMissingLast="true" omitNorms="true" />
+  <fieldType name="long" class="solr.LongPointField" docValues="true" positionIncrementGap="0" />
+  <fieldType name="double" class="solr.DoublePointField" docValues="true" positionIncrementGap="0" />
+  <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100" multiValued="true">
+    <analyzer type="index">
+      <tokenizer name="standard"/>
+      <!-- <filter name="stop" ignoreCase="true" words="stopwords.txt" /> -->
+      <!-- in this example, we will only use synonyms at query time
+        <filter name="synonymGraph" synonyms="index_synonyms.txt" ignoreCase="true" expand="false"/>
+        <filter name="flattenGraph"/>
+        -->
+      <filter name="lowercase"/>
+    </analyzer>
+    <analyzer type="query">
+      <tokenizer name="standard"/>
+      <!-- <filter name="stop" ignoreCase="true" words="stopwords.txt" />
+        <filter name="synonymGraph" synonyms="synonyms.txt" ignoreCase="true" expand="true"/> -->
+      <filter name="lowercase"/>
+    </analyzer>
+  </fieldType>
+
+  <uniqueKey>id</uniqueKey>
+  <field name="id" type="string" indexed="true" stored="true" multiValued="false" required="true" />
+  <field name="_version_" type="long" indexed="true" stored="true" docValues="true" />
+  <field name="group_key" type="string" indexed="true" stored="true" docValues="true" />
+  <field name="probability" type="double" indexed="true" stored="true" docValues="true" useDocValuesAsStored="true" />
+  <field name="cumulative_probability" type="double" indexed="true" stored="true" docValues="true" useDocValuesAsStored="true" />
+</schema>

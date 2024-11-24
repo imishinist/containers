@@ -1,0 +1,9 @@
+{"id":100,"group_key":"A","probability":0.5,"cumulative_probability":0.5}
+{"id":101,"group_key":"A","probability":0.3,"cumulative_probability":0.8}
+{"id":102,"group_key":"A","probability":0.2,"cumulative_probability":1.0}
+{"id":200,"group_key":"B","probability":0.7,"cumulative_probability":0.7}
+{"id":201,"group_key":"B","probability":0.3,"cumulative_probability":1.0}
+{"id":300,"group_key":"C","probability":0.4,"cumulative_probability":0.4}
+{"id":301,"group_key":"C","probability":0.2,"cumulative_probability":0.6}
+{"id":302,"group_key":"C","probability":0.2,"cumulative_probability":0.8}
+{"id":303,"group_key":"C","probability":0.2,"cumulative_probability":1.0}
